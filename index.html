@@ -199,14 +199,13 @@
   </details>
 
   <footer>
-    <p><b>判定について</b>：「文脈で判定」は形態素解析（kuromoji.js）で文中の実際の読みを調べ、読みが <code>カイ</code> になる漢字だけを貝にします。「単純に置換」は文脈を見ず、かいと読みうる漢字をすべて貝にします（辞書が読み込めない時の予備）。<br>
+    <p><b>判定について</b>：「文脈で判定」は形態素解析（kuromoji.js）で文中の実際の読みを調べ、読みが <code>カイ</code> になる漢字だけを貝にします。辞書は<b>バックグラウンドで読み込む</b>ので、開いた瞬間から「単純置換」で使え、準備ができると自動で文脈判定に切り替わります（読み込みは初回のみ・約十数MB）。「単純に置換」は文脈を見ず、かいと読みうる漢字をすべて貝にします。<br>
     色のついた貝（<span style="color:var(--accent);font-weight:700">貝</span>）が置きかわった文字です。アクセント色は、貝（ムレックス）から採れる古代紫にちなんでいます。</p>
   </footer>
 </div>
 
 <div class="toast" id="toast">コピーしました</div>
 
-<script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
 <script>
 (function(){
   "use strict";
@@ -220,9 +219,13 @@
   var statusText = $('statusText'), statusDot = $('statusDot'), statusEl = $('status');
   var btnContext = $('modeContext'), btnSimple = $('modeSimple');
 
-  var tokenizer = null;       // kuromoji のトークナイザ
-  var dictReady = false;      // 辞書が使えるか
-  var mode = 'context';       // 'context' | 'simple'
+  var worker = null;          // 辞書を動かす Web Worker
+  var dictReady = false;      // 辞書が使える状態か
+  var mode = 'simple';        // 'context' | 'simple'（初期は即動く単純置換）
+  var autoUpgrade = true;     // ユーザーが手動で選ぶまでは準備完了時に自動で文脈判定へ
+  var reqSeq = 0;             // tokenize リクエストの通し番号
+  var pending = {};           // id -> resolve
+  var renderSeq = 0;          // 描画の競合防止
 
   // ── 共通：HTMLエスケープ ──
   function esc(s){
@@ -246,43 +249,61 @@
     return chars.map(function(c,i){ return { ch: toReplace[i] ? '貝' : c, replaced: !!toReplace[i] }; });
   }
 
-  // ── 変換本体。{html, count, items} を返す ──
-  function convert(text){
-    var pieces = [];      // {ch, replaced}
-    var items = [];       // 内訳 {from, yomi, to}
-
-    if(mode === 'context' && dictReady){
-      var tokens = tokenizer.tokenize(text);
-      tokens.forEach(function(t){
-        var surface = t.surface_form;
-        var reading = t.reading || t.pronunciation || '';
-        var hadKai = Array.from(surface).some(function(c){ return KAI_SET.has(c); });
-        var processed = processToken(surface, reading);
-        var didReplace = processed.some(function(p){ return p.replaced; });
-        if(hadKai && didReplace){
-          var to = processed.map(function(p){ return p.ch; }).join('');
-          items.push({ from: surface, yomi: reading, to: to });
-        }
-        pieces = pieces.concat(processed);
-      });
-    } else {
-      // 単純置換：文脈を見ず、かい字をすべて貝に
-      Array.from(text).forEach(function(c){
-        var hit = KAI_SET.has(c);
-        pieces.push({ ch: hit ? '貝' : c, replaced: hit });
-        if(hit) items.push({ from: c, yomi: '—', to: '貝' });
-      });
-    }
-
-    var count = 0, html = '';
-    pieces.forEach(function(p){
-      if(p.replaced){ count++; html += '<span class="kai pop">貝</span>'; }
-      else { html += esc(p.ch); }
+  // ── Worker にトークン化を依頼（準備前/失敗時は null を返す） ──
+  function tokenizeViaWorker(text){
+    return new Promise(function(resolve){
+      if(!worker || !dictReady){ resolve(null); return; }
+      var id = ++reqSeq;
+      pending[id] = resolve;
+      worker.postMessage({ type:'tokenize', id:id, text:text });
+      setTimeout(function(){ if(pending[id]){ delete pending[id]; resolve(null); } }, 8000);
     });
-    return { html: html, count: count, items: items };
   }
 
-  // ── 描画 ──
+  // ── 変換本体（非同期）。{html, count, items} を返す ──
+  function convert(text){
+    return new Promise(function(resolve){
+      var useContext = (mode === 'context' && dictReady);
+      var done = function(tokens){
+        var pieces = [];   // {ch, replaced}
+        var items = [];    // 内訳 {from, yomi, to}
+
+        if(tokens){
+          tokens.forEach(function(t){
+            var surface = t.s;
+            var reading = t.r || '';
+            var hadKai = Array.from(surface).some(function(c){ return KAI_SET.has(c); });
+            var processed = processToken(surface, reading);
+            var didReplace = processed.some(function(p){ return p.replaced; });
+            if(hadKai && didReplace){
+              var to = processed.map(function(p){ return p.ch; }).join('');
+              items.push({ from: surface, yomi: reading, to: to });
+            }
+            pieces = pieces.concat(processed);
+          });
+        } else {
+          // 単純置換：文脈を見ず、かい字をすべて貝に
+          Array.from(text).forEach(function(c){
+            var hit = KAI_SET.has(c);
+            pieces.push({ ch: hit ? '貝' : c, replaced: hit });
+            if(hit) items.push({ from: c, yomi: '—', to: '貝' });
+          });
+        }
+
+        var count = 0, html = '';
+        pieces.forEach(function(p){
+          if(p.replaced){ count++; html += '<span class="kai pop">貝</span>'; }
+          else { html += esc(p.ch); }
+        });
+        resolve({ html: html, count: count, items: items });
+      };
+
+      if(useContext){ tokenizeViaWorker(text).then(done); }
+      else { done(null); }
+    });
+  }
+
+  // ── 描画（非同期） ──
   function render(){
     var text = input.value;
     if(!text){
@@ -291,26 +312,29 @@
       chip.hidden = true; copyBtn.hidden = true; details.hidden = true;
       return;
     }
-    var r = convert(text);
-    output.className = 'output';
-    output.innerHTML = r.html;
-    window._lastPlain = output.textContent; // コピー用のプレーンテキスト
+    var mySeq = ++renderSeq;
+    convert(text).then(function(r){
+      if(mySeq !== renderSeq) return; // 新しい描画が来ていたら破棄
+      output.className = 'output';
+      output.innerHTML = r.html;
+      window._lastPlain = output.textContent; // コピー用のプレーンテキスト
 
-    chip.hidden = false;
-    chip.textContent = r.count + '字を貝に';
-    copyBtn.hidden = false;
+      chip.hidden = false;
+      chip.textContent = r.count + '字を貝に';
+      copyBtn.hidden = false;
 
-    if(r.items.length){
-      details.hidden = false;
-      breakdown.innerHTML = r.items.map(function(it){
-        var yomi = it.yomi && it.yomi !== '—' ? '<span class="yomi">'+esc(it.yomi)+'</span>' : '';
-        return '<div class="row"><span class="from">'+esc(it.from)+'</span>'+yomi+
-               '<span class="to">'+esc(it.to)+'</span></div>';
-      }).join('');
-    } else {
-      details.hidden = false;
-      breakdown.innerHTML = '<div class="row"><span class="empty-note">「かい」と読む漢字は見つかりませんでした。</span></div>';
-    }
+      if(r.items.length){
+        details.hidden = false;
+        breakdown.innerHTML = r.items.map(function(it){
+          var yomi = it.yomi && it.yomi !== '—' ? '<span class="yomi">'+esc(it.yomi)+'</span>' : '';
+          return '<div class="row"><span class="from">'+esc(it.from)+'</span>'+yomi+
+                 '<span class="to">'+esc(it.to)+'</span></div>';
+        }).join('');
+      } else {
+        details.hidden = false;
+        breakdown.innerHTML = '<div class="row"><span class="empty-note">「かい」と読む漢字は見つかりませんでした。</span></div>';
+      }
+    });
   }
 
   // ── モード切替 ──
@@ -320,10 +344,16 @@
     btnContext.setAttribute('aria-pressed', ctx ? 'true' : 'false');
     btnSimple.setAttribute('aria-pressed', ctx ? 'false' : 'true');
   }
-  btnContext.addEventListener('click', function(){ if(!dictReady) return; setMode('context'); });
-  btnSimple.addEventListener('click', function(){ setMode('simple'); });
+  // ユーザーが手動で選んだら自動切替はやめる
+  btnContext.addEventListener('click', function(){
+    if(!dictReady) return;
+    autoUpgrade = false; setMode('context'); render();
+  });
+  btnSimple.addEventListener('click', function(){
+    autoUpgrade = false; setMode('simple'); render();
+  });
 
-  // ── 実行 ──
+  // ── 実行 ──（実行ボタンは自動切替を妨げない）
   runBtn.addEventListener('click', render);
   input.addEventListener('keydown', function(e){
     if((e.metaKey || e.ctrlKey) && e.key === 'Enter'){ render(); }
@@ -339,29 +369,74 @@
     });
   });
 
-  // ── kuromoji 辞書ロード ──
-  function dictFailed(){
-    dictReady = false;
-    setMode('simple');
-    btnContext.disabled = true;
-    statusEl.classList.add('warn');
-    statusDot.className = 'dot off';
-    statusText.textContent = '辞書を読み込めませんでした。単純置換モードで動きます。';
+  // ── 状態表示 ──
+  function setStatus(kind, msg){
+    statusEl.classList.toggle('warn', kind === 'warn');
+    statusDot.className = 'dot' + (kind === 'loading' ? ' loading' : kind === 'off' ? ' off' : '');
+    statusText.textContent = msg;
   }
 
-  if(typeof kuromoji === 'undefined'){
-    dictFailed();
-  } else {
-    kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' })
-      .build(function(err, tk){
-        if(err || !tk){ dictFailed(); return; }
-        tokenizer = tk;
-        dictReady = true;
-        statusDot.className = 'dot';
-        statusText.textContent = '準備完了。文脈を見て判定します。';
-        render(); // 初期サンプルを即変換
-      });
+  // ── 辞書ロード失敗 → 単純置換で継続 ──
+  function dictFailed(){
+    dictReady = false; autoUpgrade = false;
+    setMode('simple');
+    btnContext.disabled = true;
+    setStatus('off', '辞書を読み込めませんでした。単純置換で動作します。');
   }
+
+  // ── 辞書準備完了 → 文脈判定を解禁し、必要なら自動で切り替え ──
+  function dictBecameReady(){
+    dictReady = true;
+    btnContext.disabled = false;
+    if(autoUpgrade){
+      setMode('context');
+      setStatus('ok', '準備完了。文脈を見て判定します。');
+    } else {
+      setStatus('ok', mode === 'context' ? '準備完了。文脈を見て判定します。' : '準備完了。（単純置換を選択中）');
+    }
+    render(); // 表示中の文章を新しいモードで描き直す
+  }
+
+  // ── Web Worker（辞書の重い処理を裏側で実行） ──
+  var WORKER_SRC =
+    "var tk=null;" +
+    "try{importScripts('https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js');}" +
+    "catch(e){postMessage({type:'error'});}" +
+    "if(typeof kuromoji!=='undefined'){" +
+    "  kuromoji.builder({dicPath:'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/'})" +
+    "  .build(function(err,t){if(err||!t){postMessage({type:'error'});return;}tk=t;postMessage({type:'ready'});});" +
+    "}" +
+    "onmessage=function(e){var m=e.data;if(m&&m.type==='tokenize'){" +
+    "  if(!tk){postMessage({type:'tokens',id:m.id,tokens:null});return;}" +
+    "  var raw=tk.tokenize(m.text);" +
+    "  var out=raw.map(function(x){return {s:x.surface_form,r:x.reading||x.pronunciation||''};});" +
+    "  postMessage({type:'tokens',id:m.id,tokens:out});" +
+    "}};";
+
+  function startWorker(){
+    if(typeof Worker === 'undefined' || typeof Blob === 'undefined'){ dictFailed(); return; }
+    try{
+      var url = URL.createObjectURL(new Blob([WORKER_SRC], { type:'application/javascript' }));
+      worker = new Worker(url);
+    }catch(e){ dictFailed(); return; }
+
+    worker.onmessage = function(e){
+      var m = e.data;
+      if(m.type === 'ready'){ dictBecameReady(); }
+      else if(m.type === 'error'){ dictFailed(); }
+      else if(m.type === 'tokens'){
+        var r = pending[m.id];
+        if(r){ delete pending[m.id]; r(m.tokens); }
+      }
+    };
+    worker.onerror = function(){ dictFailed(); };
+  }
+
+  // ── 起動 ──
+  setMode('simple');                 // 最初から即使える単純置換
+  btnContext.disabled = true;        // 準備できるまで文脈判定は押せない
+  setStatus('loading', '文脈判定の辞書を準備中…（いますぐ使うなら「貝にする」で単純置換）');
+  startWorker();
 })();
 </script>
 </body>
