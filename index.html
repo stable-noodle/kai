@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>貝化装置 — 「かい」を貝にする</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* 螺鈿（らでん）／貝紫の海辺。貝ムレックスから採れた古代紫を主役に。 */
+    --bg:        #ECEFEC;
+    --surface:   #F8F9F7;
+    --ink:       #1F2E2C;
+    --muted:     #6C7A77;
+    --line:      #D5DBD3;
+    --line-soft: #E4E8E2;
+    --accent:    #A8325E;  /* 貝紫 murex */
+    --accent-tint:#F3E2E9;
+    --teal:      #2E7D74;  /* 潮 */
+    --serif: "Noto Serif JP","Hiragino Mincho ProN","Yu Mincho",serif;
+    --sans:  "Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+    padding:clamp(20px,5vw,56px) 18px 80px;
+    display:flex;
+    justify-content:center;
+  }
+  .wrap{width:100%;max-width:620px;}
+
+  /* ── ヘッダー ── */
+  header{margin-bottom:30px;}
+  .eyebrow{
+    font-size:13px;letter-spacing:.18em;color:var(--teal);
+    font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:10px;
+  }
+  .eyebrow .arrow{color:var(--muted);font-weight:500;}
+  h1{
+    font-family:var(--serif);font-weight:700;
+    font-size:clamp(34px,9vw,52px);line-height:1.1;margin:0 0 12px;
+    letter-spacing:.02em;
+  }
+  h1 .shell{color:var(--accent);position:relative;}
+  .lede{color:var(--muted);font-size:15px;margin:0;max-width:46ch;}
+  .lede b{color:var(--ink);font-weight:500;}
+
+  /* 貝殻のひだ：仕切り線 */
+  .scallop{height:14px;margin:26px 0;color:var(--line);
+    background:radial-gradient(circle at 7px -3px,transparent 7px,currentColor 7px 8px,transparent 8px);
+    background-size:14px 14px;background-repeat:repeat-x;background-position:center;}
+
+  /* ── 入力 ── */
+  .field-label{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:13px;font-weight:700;letter-spacing:.04em;margin-bottom:8px;}
+  .field-label .hint{font-weight:400;color:var(--muted);letter-spacing:0;}
+  textarea{
+    width:100%;min-height:128px;resize:vertical;
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px;font-family:var(--serif);font-size:18px;line-height:1.9;
+    color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s;
+  }
+  textarea::placeholder{color:#A9B2AF;}
+  textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(46,125,116,.14);}
+
+  /* ── 操作行 ── */
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:16px;}
+  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);
+    border-radius:11px;padding:3px;gap:2px;}
+  .seg button{
+    border:0;background:transparent;color:var(--muted);cursor:pointer;
+    font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:.02em;
+    padding:7px 13px;border-radius:8px;transition:background .15s,color .15s;
+  }
+  .seg button[aria-pressed="true"]{background:var(--ink);color:#fff;}
+  .seg button:disabled{opacity:.4;cursor:not-allowed;}
+
+  .go{
+    margin-left:auto;border:0;cursor:pointer;
+    background:var(--accent);color:#fff;
+    font-family:var(--sans);font-size:15px;font-weight:700;letter-spacing:.06em;
+    padding:11px 24px;border-radius:11px;
+    transition:transform .08s,filter .15s;
+  }
+  .go:hover{filter:brightness(1.06);}
+  .go:active{transform:translateY(1px);}
+
+  .status{font-size:12.5px;color:var(--muted);margin-top:12px;min-height:1.2em;}
+  .status.warn{color:var(--accent);}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:var(--teal);margin-right:6px;vertical-align:middle;}
+  .dot.loading{background:var(--muted);animation:pulse 1s ease-in-out infinite;}
+  .dot.off{background:#C9B0Bb;}
+  @keyframes pulse{50%{opacity:.3;}}
+
+  /* ── 出力 ── */
+  .out-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .out-head h2{font-family:var(--sans);font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin:0;}
+  .chip{font-size:12px;font-weight:700;color:var(--accent);
+    background:var(--accent-tint);padding:4px 11px;border-radius:99px;}
+  .copy{border:1px solid var(--line);background:var(--surface);cursor:pointer;
+    font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--ink);
+    padding:6px 13px;border-radius:9px;margin-left:8px;transition:background .15s;}
+  .copy:hover{background:var(--line-soft);}
+  .out-head .right{display:flex;align-items:center;}
+
+  .output{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;min-height:90px;
+    font-family:var(--serif);font-size:20px;line-height:2.0;
+    white-space:pre-wrap;word-break:break-word;
+  }
+  .output.empty{color:#A9B2AF;font-family:var(--sans);font-size:14px;
+    display:flex;align-items:center;}
+
+  /* 置きかわった貝 */
+  .kai{color:var(--accent);font-weight:700;position:relative;display:inline-block;}
+  .kai::after{content:"";position:absolute;left:-1px;right:-1px;bottom:1px;height:7px;
+    border-bottom:2px solid var(--accent);border-radius:0 0 60% 60%;opacity:.55;}
+  .pop{animation:pop .32s cubic-bezier(.34,1.56,.64,1) both;}
+  @keyframes pop{0%{transform:scale(.4);opacity:0;}60%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
+
+  /* ── 内訳 ── */
+  details{margin-top:18px;}
+  summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--teal);
+    list-style:none;display:inline-flex;align-items:center;gap:6px;}
+  summary::-webkit-details-marker{display:none;}
+  summary::before{content:"›";font-size:18px;line-height:1;transition:transform .15s;display:inline-block;}
+  details[open] summary::before{transform:rotate(90deg);}
+  .breakdown{margin-top:12px;display:flex;flex-direction:column;gap:1px;
+    border:1px solid var(--line-soft);border-radius:11px;overflow:hidden;}
+  .row{display:flex;align-items:center;gap:12px;padding:9px 14px;background:var(--surface);font-size:14px;}
+  .row .from{font-family:var(--serif);font-size:17px;min-width:4ch;}
+  .row .yomi{color:var(--muted);font-size:12.5px;letter-spacing:.04em;}
+  .row .to{margin-left:auto;font-family:var(--serif);font-size:17px;color:var(--accent);font-weight:700;}
+  .empty-note{color:var(--muted);font-size:13px;padding:4px 2px;}
+
+  footer{margin-top:34px;font-size:12px;color:var(--muted);line-height:1.8;}
+  footer code{font-family:ui-monospace,monospace;background:var(--line-soft);
+    padding:1px 5px;border-radius:5px;font-size:11.5px;}
+
+  /* トースト */
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;font-size:13px;font-weight:600;
+    padding:10px 18px;border-radius:99px;opacity:0;pointer-events:none;
+    transition:opacity .2s,transform .2s;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important;}
+  }
+  :focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">かい <span class="arrow">→</span> <span style="color:var(--accent)">貝</span></div>
+    <h1>貝化<span class="shell">装置</span></h1>
+    <p class="lede">文章の中で <b>「かい」と読む漢字</b> を、ぜんぶ貝に置きかえます。<br>読みは文脈から判定するので、<b>「会う」はそのまま、「機械」は機貝</b>。</p>
+  </header>
+
+  <div class="field-label">
+    <span>文章を入れる</span>
+  </div>
+  <textarea id="input" placeholder="機械の世界で社会を回す。海を見て後悔した。&#10;二階の会場で紹介された。">機械の世界で社会を回す。海を見て後悔した。二階の会場で紹介された。</textarea>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="判定モード">
+      <button id="modeContext" aria-pressed="true">文脈で判定</button>
+      <button id="modeSimple" aria-pressed="false">単純に置換</button>
+    </div>
+    <button class="go" id="run">貝にする</button>
+  </div>
+  <div class="status" id="status"><span class="dot loading" id="statusDot"></span><span id="statusText">辞書を読み込み中…</span></div>
+
+  <div class="scallop" aria-hidden="true"></div>
+
+  <div class="out-head">
+    <h2>貝にした文章</h2>
+    <div class="right">
+      <span class="chip" id="chip" hidden>0字を貝に</span>
+      <button class="copy" id="copy" hidden>コピー</button>
+    </div>
+  </div>
+  <div class="output empty" id="output">ここに結果が出ます。</div>
+
+  <details id="details" hidden>
+    <summary>置きかえた漢字を見る</summary>
+    <div class="breakdown" id="breakdown"></div>
+  </details>
+
+  <footer>
+    <p><b>判定について</b>：「文脈で判定」は形態素解析（kuromoji.js）で文中の実際の読みを調べ、読みが <code>カイ</code> になる漢字だけを貝にします。「単純に置換」は文脈を見ず、かいと読みうる漢字をすべて貝にします（辞書が読み込めない時の予備）。<br>
+    色のついた貝（<span style="color:var(--accent);font-weight:700">貝</span>）が置きかわった文字です。アクセント色は、貝（ムレックス）から採れる古代紫にちなんでいます。</p>
+  </footer>
+</div>
+
+<div class="toast" id="toast">コピーしました</div>
+
+<script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  // ── 「かい」と読みうる漢字（貝そのものは除外） ──
+  var KAI_SET = new Set(Array.from('会回海界階開解介改怪快戒拐悔懐械絵皆塊壊潰楷諧晦恢魁獪誨邂徊蟹灰街廻'));
+
+  var $ = function(id){ return document.getElementById(id); };
+  var input = $('input'), output = $('output'), runBtn = $('run');
+  var chip = $('chip'), copyBtn = $('copy'), details = $('details'), breakdown = $('breakdown');
+  var statusText = $('statusText'), statusDot = $('statusDot'), statusEl = $('status');
+  var btnContext = $('modeContext'), btnSimple = $('modeSimple');
+
+  var tokenizer = null;       // kuromoji のトークナイザ
+  var dictReady = false;      // 辞書が使えるか
+  var mode = 'context';       // 'context' | 'simple'
+
+  // ── 共通：HTMLエスケープ ──
+  function esc(s){
+    return s.replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; });
+  }
+  function countKai(reading){
+    if(!reading || reading === '*') return 0;
+    var m = reading.match(/カイ/g);
+    return m ? m.length : 0;
+  }
+
+  // 1トークンを処理：貝に置換した文字配列 [{ch, replaced}] を返す
+  function processToken(surface, reading){
+    var chars = Array.from(surface);
+    var kaiIdx = [];
+    chars.forEach(function(c,i){ if(KAI_SET.has(c)) kaiIdx.push(i); });
+    var n = countKai(reading);
+    var replaceCount = Math.min(kaiIdx.length, n);
+    var toReplace = {};
+    for(var k=0;k<replaceCount;k++){ toReplace[kaiIdx[k]] = true; }
+    return chars.map(function(c,i){ return { ch: toReplace[i] ? '貝' : c, replaced: !!toReplace[i] }; });
+  }
+
+  // ── 変換本体。{html, count, items} を返す ──
+  function convert(text){
+    var pieces = [];      // {ch, replaced}
+    var items = [];       // 内訳 {from, yomi, to}
+
+    if(mode === 'context' && dictReady){
+      var tokens = tokenizer.tokenize(text);
+      tokens.forEach(function(t){
+        var surface = t.surface_form;
+        var reading = t.reading || t.pronunciation || '';
+        var hadKai = Array.from(surface).some(function(c){ return KAI_SET.has(c); });
+        var processed = processToken(surface, reading);
+        var didReplace = processed.some(function(p){ return p.replaced; });
+        if(hadKai && didReplace){
+          var to = processed.map(function(p){ return p.ch; }).join('');
+          items.push({ from: surface, yomi: reading, to: to });
+        }
+        pieces = pieces.concat(processed);
+      });
+    } else {
+      // 単純置換：文脈を見ず、かい字をすべて貝に
+      Array.from(text).forEach(function(c){
+        var hit = KAI_SET.has(c);
+        pieces.push({ ch: hit ? '貝' : c, replaced: hit });
+        if(hit) items.push({ from: c, yomi: '—', to: '貝' });
+      });
+    }
+
+    var count = 0, html = '';
+    pieces.forEach(function(p){
+      if(p.replaced){ count++; html += '<span class="kai pop">貝</span>'; }
+      else { html += esc(p.ch); }
+    });
+    return { html: html, count: count, items: items };
+  }
+
+  // ── 描画 ──
+  function render(){
+    var text = input.value;
+    if(!text){
+      output.className = 'output empty';
+      output.textContent = 'ここに結果が出ます。';
+      chip.hidden = true; copyBtn.hidden = true; details.hidden = true;
+      return;
+    }
+    var r = convert(text);
+    output.className = 'output';
+    output.innerHTML = r.html;
+    window._lastPlain = output.textContent; // コピー用のプレーンテキスト
+
+    chip.hidden = false;
+    chip.textContent = r.count + '字を貝に';
+    copyBtn.hidden = false;
+
+    if(r.items.length){
+      details.hidden = false;
+      breakdown.innerHTML = r.items.map(function(it){
+        var yomi = it.yomi && it.yomi !== '—' ? '<span class="yomi">'+esc(it.yomi)+'</span>' : '';
+        return '<div class="row"><span class="from">'+esc(it.from)+'</span>'+yomi+
+               '<span class="to">'+esc(it.to)+'</span></div>';
+      }).join('');
+    } else {
+      details.hidden = false;
+      breakdown.innerHTML = '<div class="row"><span class="empty-note">「かい」と読む漢字は見つかりませんでした。</span></div>';
+    }
+  }
+
+  // ── モード切替 ──
+  function setMode(m){
+    mode = m;
+    var ctx = (m === 'context');
+    btnContext.setAttribute('aria-pressed', ctx ? 'true' : 'false');
+    btnSimple.setAttribute('aria-pressed', ctx ? 'false' : 'true');
+  }
+  btnContext.addEventListener('click', function(){ if(!dictReady) return; setMode('context'); });
+  btnSimple.addEventListener('click', function(){ setMode('simple'); });
+
+  // ── 実行 ──
+  runBtn.addEventListener('click', render);
+  input.addEventListener('keydown', function(e){
+    if((e.metaKey || e.ctrlKey) && e.key === 'Enter'){ render(); }
+  });
+
+  // ── コピー ──
+  var toast = $('toast');
+  copyBtn.addEventListener('click', function(){
+    var txt = window._lastPlain || output.textContent;
+    navigator.clipboard.writeText(txt).then(function(){
+      toast.classList.add('show');
+      setTimeout(function(){ toast.classList.remove('show'); }, 1400);
+    });
+  });
+
+  // ── kuromoji 辞書ロード ──
+  function dictFailed(){
+    dictReady = false;
+    setMode('simple');
+    btnContext.disabled = true;
+    statusEl.classList.add('warn');
+    statusDot.className = 'dot off';
+    statusText.textContent = '辞書を読み込めませんでした。単純置換モードで動きます。';
+  }
+
+  if(typeof kuromoji === 'undefined'){
+    dictFailed();
+  } else {
+    kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' })
+      .build(function(err, tk){
+        if(err || !tk){ dictFailed(); return; }
+        tokenizer = tk;
+        dictReady = true;
+        statusDot.className = 'dot';
+        statusText.textContent = '準備完了。文脈を見て判定します。';
+        render(); // 初期サンプルを即変換
+      });
+  }
+})();
+</script>
+</body>
+</html>
