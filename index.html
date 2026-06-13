@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>貝化装置 — 「かい」を貝にする</title>
+<title>貝化装置(Ver. 1.1) — 「かい」を貝にする</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
@@ -158,17 +158,162 @@
     *{animation:none!important;transition:none!important;}
   }
   :focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+
+  /* ── クエスト検索 ── */
+  /* ── クエスト検索 ── */
+  .quest-section{margin-top:24px;}
+  .quest-section > h2{font-family:var(--serif);font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:.02em;}
+  .quest-section > .sub{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .quest-row{display:flex;gap:10px;align-items:stretch;}
+  .quest-input{
+    flex:1;background:var(--surface);border:1px solid var(--line);border-radius:11px;
+    padding:12px 16px;font-family:var(--sans);font-size:15px;color:var(--ink);outline:none;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  .quest-input::placeholder{color:#A9B2AF;}
+  .quest-input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(46,125,116,.14);}
+  .quest-search-btn{
+    border:0;cursor:pointer;background:var(--teal);color:#fff;
+    font-family:var(--sans);font-size:14px;font-weight:700;letter-spacing:.04em;
+    padding:12px 20px;border-radius:11px;white-space:nowrap;
+    transition:transform .08s,filter .15s;
+  }
+  .quest-search-btn:hover{filter:brightness(1.08);}
+  .quest-search-btn:active{transform:translateY(1px);}
+
+  /* 件数・ロード表示 */
+  .quest-meta{font-size:12.5px;color:var(--muted);margin-top:10px;min-height:1.4em;}
+  .quest-meta b{color:var(--teal);font-weight:700;}
+
+  /* ── テーブルレイアウト ── */
+  .quest-results{margin-top:12px;}
+  .qtable{
+    width:100%;border-collapse:collapse;
+    border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    font-size:13px;
+  }
+  .qtable-thead th{
+    background:var(--ink);color:#fff;
+    font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.05em;
+    padding:9px 12px;text-align:left;
+  }
+  .qtable-thead th:first-child{border-radius:0;}
+  .qrow-main td{
+    padding:10px 12px;vertical-align:top;
+    border-top:1px solid var(--line-soft);
+    background:var(--surface);
+  }
+  .qrow-main:hover td{background:#f0f5f0;}
+  .qrow-detail td{
+    padding:0;border-top:none;
+    background:var(--bg);
+  }
+  .qrow-detail-inner{
+    display:none;padding:14px 16px;
+    border-top:2px solid var(--teal);
+  }
+  .qrow-detail-inner.open{display:block;}
+
+  /* 列：クエスト名 */
+  .qcol-name{min-width:120px;}
+  .qcard-name{
+    font-family:var(--serif);font-size:15px;font-weight:700;
+    color:var(--ink);display:block;margin-bottom:4px;
+  }
+  .qcard-toggle{
+    display:inline-flex;align-items:center;gap:4px;
+    padding:3px 10px;border-radius:6px;
+    border:1px solid var(--teal);background:transparent;cursor:pointer;
+    font-family:var(--sans);font-size:11px;font-weight:700;color:var(--teal);
+    letter-spacing:.03em;transition:background .12s;
+  }
+  .qcard-toggle:hover{background:rgba(46,125,116,.08);}
+
+  /* 列：分類 */
+  .qcol-type{white-space:nowrap;min-width:80px;}
+  .qtype-badge{
+    display:inline-block;font-size:12px;font-weight:700;
+    color:var(--accent);background:var(--accent-tint);
+    padding:3px 9px;border-radius:99px;
+  }
+
+  /* 列：スキル */
+  .qcol-skill{min-width:110px;line-height:1.9;color:var(--ink);}
+
+  /* 列：発見物・入手 */
+  .qcol-disc{min-width:110px;}
+  .qdisc-name{font-weight:700;color:var(--ink);}
+  .qdisc-sub{color:var(--muted);font-size:12px;line-height:1.8;}
+
+  /* 詳細エリア */
+  .detail-city{
+    display:flex;align-items:center;gap:8px;
+    margin-bottom:10px;font-size:13px;font-weight:600;color:var(--ink);
+  }
+  .detail-city-label{
+    font-size:11px;font-weight:700;letter-spacing:.04em;color:#fff;
+    background:var(--muted);padding:2px 8px;border-radius:99px;white-space:nowrap;
+  }
+  .desc-toggle{
+    display:inline-flex;align-items:center;gap:4px;margin-top:10px;
+    padding:4px 11px;border-radius:6px;
+    border:1px solid var(--line);background:transparent;cursor:pointer;
+    font-family:var(--sans);font-size:12px;font-weight:700;color:var(--muted);
+    transition:background .12s;
+  }
+  .desc-toggle:hover{background:var(--line-soft);}
+  .desc-body{display:none;margin-top:8px;}
+  .desc-body.open{display:block;}
+  .detail-desc{
+    font-size:13px;color:var(--ink);line-height:1.8;
+    padding:10px 14px;background:var(--surface);border-radius:8px;
+    border-left:3px solid var(--teal);margin-bottom:12px;
+  }
+  .detail-proc{
+    font-size:12.5px;color:var(--ink);line-height:1.9;
+    white-space:pre-wrap;word-break:break-word;
+  }
+  .detail-item{
+    margin-top:10px;padding:8px 12px;
+    background:var(--accent-tint);border-radius:8px;
+    font-size:12.5px;color:var(--ink);
+  }
+  .detail-item b{color:var(--accent);font-size:11px;font-weight:700;letter-spacing:.04em;display:block;margin-bottom:2px;}
+
+  .quest-more{
+    border:1px solid var(--line);background:var(--surface);cursor:pointer;
+    font-family:var(--sans);font-size:13px;font-weight:600;color:var(--teal);
+    width:100%;padding:12px;border-radius:11px;margin-top:8px;
+    transition:background .15s;
+  }
+  .quest-more:hover{background:var(--line-soft);}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div class="eyebrow">かい <span class="arrow">→</span> <span style="color:var(--accent)">貝</span></div>
-    <h1>貝化<span class="shell">装置</span></h1>
-    <p class="lede">文章の中で <b>「かい」と読む漢字</b> を、ぜんぶ貝に置きかえます。読みは文脈から判定するので、<b>「会う」はそのまま、「機械」は機貝</b>。</p>
+    <h1>貝化<span class="shell">装置</span> (Ver. 1.1)</h1>
   </header>
 
-  <div class="field-label">
+  <!-- ── クエストDB検索 ── -->
+  <div class="quest-section">
+    <h2>クエストDB検索</h2>
+    <p class="sub">大航海時代オンライン — クエスト名・スキル・都市などで絞り込み</p>
+    <div class="quest-row">
+      <input class="quest-input" id="questInput" type="search" placeholder="例: 海図、探索、リスボン" autocomplete="off">
+      <button class="quest-search-btn" id="questSearch">検索</button>
+    </div>
+    <div class="quest-meta" id="questMeta"></div>
+    <div class="quest-results" id="questResults"></div>
+  </div>
+
+  <div class="scallop" aria-hidden="true"></div>
+
+  <!-- ── 貝化装置 ── -->
+  <p class="lede">文章の中で <b>「かい」と読む漢字</b> を、ぜんぶ貝に置きかえます。読みは文脈から判定するので、<b>「会う」はそのまま、「機械」は機貝</b>。</p>
+
+  <div class="field-label" style="margin-top:20px;">
     <span>文章を入れる</span>
   </div>
   <textarea id="input" placeholder="機械の世界で社会を回す。海を見て後悔した。&#10;二階の会場で紹介された。">機械の世界で社会を回す。海を見て後悔した。二階の会場で紹介された。</textarea>
@@ -447,6 +592,223 @@
   btnContext.disabled = true;        // 準備できるまで文脈判定は押せない
   setStatus('loading', '文脈判定の辞書を準備中…（いますぐ使うなら「貝にする」で単純置換）');
   startWorker();
+})();
+</script>
+
+<script src="quests.js"></script>
+<script src="discovery.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var questInput   = document.getElementById('questInput');
+  var questSearch  = document.getElementById('questSearch');
+  var questMeta    = document.getElementById('questMeta');
+  var questResults = document.getElementById('questResults');
+
+  var PAGE = 20;
+  var lastResults = [];
+  var shown = 0;
+  var currentKw = '';
+
+  // オファー方法の略称
+  var TYPE_SHORT = {
+    'トレジャーハント':'トレハン','冒険クエスト':'冒険','交易クエスト':'交易',
+    '海事クエスト':'海事','生産クエスト':'生産','街クエスト':'街'
+  };
+
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+  function highlight(text, kw){
+    if(!kw || !text) return esc(text||'');
+    var re = new RegExp('(' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+    return esc(text).replace(re, '<mark style="background:#fff3b0;border-radius:2px;padding:0 1px;">$1</mark>');
+  }
+
+  // スキルを1行ずつに整形（カンマ区切り → 改行）
+  function fmtSkill(skill, kw){
+    if(!skill) return '';
+    return skill.split(',').map(function(s){ return highlight(s.trim(), kw); }).join('<br>');
+  }
+
+  // 備考から報酬・前金・経験値・名声をパース
+  function parseReward(note){
+    var reward = '', advance = '', exp = '', fame = '';
+    if(!note) return {reward:reward, advance:advance, exp:exp, fame:fame};
+
+    // パターンA: 報酬：10,000　前金：24,360 または 報酬：2200　前金：1860
+    var mA = note.match(/報酬[：:]([\d,]+)\s*　?\s*前金[：:]([\d,]+)/);
+    if(mA){ reward = mA[1]; advance = mA[2]; }
+
+    // パターンB: 報酬・前金　500/0
+    if(!reward){
+      var mB = note.match(/報酬[・･]前金[\s　]+([\d,]+)\/([\d,]+)/);
+      if(mB){ reward = mB[1]; advance = mB[2]; }
+    }
+
+    // 経験・名声　30/35
+    var mE = note.match(/経験[・･]名声[\s　]+([\d,]+)\/([\d,]+)/);
+    if(mE){ exp = mE[1]; fame = mE[2]; }
+
+    return {reward:reward, advance:advance, exp:exp, fame:fame};
+  }
+
+  // 発見物カラム：種類/発見物名 + 報酬/前金 + 経験値/名声
+  function fmtDisc(q, kw){
+    var discLabel = (q.disc || '') + (q.dname ? '/' + q.dname : '');
+    var line1 = discLabel ? '<span class="qdisc-name">'+highlight(discLabel, kw)+'</span>' : '';
+
+    var rw = parseReward(q.note);
+
+    // 経験値：発見物CSVのexp（発見時XP）を優先、なければ備考パース値
+    var discItems = (typeof DISCOVERY !== 'undefined' && DISCOVERY[q.id]) ? DISCOVERY[q.id] : [];
+    var discExp = '';
+    discItems.forEach(function(d){ if(d.exp && !discExp) discExp = d.exp; });
+    var expVal  = discExp  || rw.exp  || '—';
+    var fameVal = rw.fame  || '—';
+    var rwVal   = rw.reward  || '—';
+    var advVal  = rw.advance || '—';
+
+    var sub = '<div class="qdisc-sub">'
+      + '報酬：' + esc(rwVal) + '／前金：' + esc(advVal) + '<br>'
+      + '経験値：' + esc(expVal) + '／名声：' + esc(fameVal)
+      + '</div>';
+
+    return line1 + sub;
+  }
+
+  // 詳細エリアのHTML
+  function renderDetail(q, kw){
+    var discItems = (typeof DISCOVERY !== 'undefined' && DISCOVERY[q.id]) ? DISCOVERY[q.id] : [];
+    var html = '';
+
+    // 都市
+    if(q.city){
+      html += '<div class="detail-city"><span class="detail-city-label">都市</span>'
+        + highlight(q.city, kw) + '</div>';
+    }
+
+    // 手順（備考）
+    if(q.note){
+      var noteHtml = highlight(q.note, kw).replace(/\n/g, '<br>');
+      html += '<div class="detail-proc">' + noteHtml + '</div>';
+    }
+
+    // 入手アイテム
+    if(q.item){
+      html += '<div class="detail-item"><b>入手アイテム</b>' + highlight(q.item, kw) + '</div>';
+    }
+
+    // 発見物の説明（トグル）
+    var descHtml = '';
+    discItems.forEach(function(d){
+      if(!d.desc) return;
+      descHtml += '<div class="detail-desc">' + highlight(d.desc, kw).replace(/\n/g, '<br>') + '</div>';
+    });
+    if(descHtml){
+      var did = 'dd-' + esc(q.id);
+      html += '<button class="desc-toggle" data-did="'+did+'">▶ 発見物の説明</button>'
+        + '<div class="desc-body" id="'+did+'">'+descHtml+'</div>';
+    }
+
+    return html;
+  }
+
+  // テーブル行（main行 + detail行のペア）
+  function renderRow(q, kw){
+    var typeShort = TYPE_SHORT[q.type] || q.type || '';
+    var typeTxt = typeShort + (q.lv ? '(' + q.lv + ')' : '');
+    var hasDetail = q.note || q.item ||
+      (typeof DISCOVERY !== 'undefined' && DISCOVERY[q.id] && DISCOVERY[q.id].length);
+    var toggleBtn = hasDetail
+      ? '<button class="qcard-toggle" data-qid="'+esc(q.id)+'">▶ 詳細</button>'
+      : '';
+    return '<tr class="qrow-main">'
+      + '<td class="qcol-name"><span class="qcard-name">'+highlight(q.name,kw)+'</span>'+toggleBtn+'</td>'
+      + '<td class="qcol-type"><span class="qtype-badge">'+esc(typeTxt)+'</span></td>'
+      + '<td class="qcol-skill">'+fmtSkill(q.skill,kw)+'</td>'
+      + '<td class="qcol-disc">'+fmtDisc(q,kw)+'</td>'
+      + '</tr>'
+      + '<tr class="qrow-detail" id="qdr-'+esc(q.id)+'">'
+      + '<td colspan="4"><div class="qrow-detail-inner" id="qd-'+esc(q.id)+'">'+renderDetail(q,kw)+'</div></td>'
+      + '</tr>';
+  }
+
+  // トグル：イベント委譲
+  document.addEventListener('click', function(e){
+    // 詳細トグル
+    var btn = e.target.closest('.qcard-toggle');
+    if(btn){
+      var qid = btn.dataset.qid;
+      var inner = document.getElementById('qd-' + qid);
+      if(!inner) return;
+      var open = inner.classList.toggle('open');
+      btn.textContent = open ? '▼ 閉じる' : '▶ 詳細';
+      return;
+    }
+    // 発見物の説明トグル
+    var dbtn = e.target.closest('.desc-toggle');
+    if(dbtn){
+      var did = dbtn.dataset.did;
+      var body = document.getElementById(did);
+      if(!body) return;
+      var open = body.classList.toggle('open');
+      dbtn.textContent = open ? '▼ 閉じる' : '▶ 発見物の説明';
+    }
+  });
+
+  function showMore(kw){
+    var end = Math.min(shown + PAGE, lastResults.length);
+    var frag = '';
+    for(var i = shown; i < end; i++) frag += renderRow(lastResults[i], kw);
+    shown = end;
+    var tbody = document.getElementById('questTbody');
+    if(tbody) tbody.insertAdjacentHTML('beforeend', frag);
+    var more = document.getElementById('questMore');
+    if(!more) return;
+    if(shown >= lastResults.length){ more.remove(); }
+    else { more.textContent = 'さらに表示 (' + (lastResults.length - shown) + '件)'; }
+  }
+
+  function doSearch(){
+    var kw = questInput.value.trim();
+    currentKw = kw;
+    if(!kw){ questMeta.innerHTML=''; questResults.innerHTML=''; return; }
+    if(typeof QUESTS === 'undefined'){
+      questMeta.innerHTML = '<span style="color:var(--accent)">データ読み込み中…</span>';
+      return;
+    }
+    var lkw = kw.toLowerCase();
+    lastResults = QUESTS.filter(function(q){
+      return (q.name+q.skill+q.city+q.type+q.item+q.note+q.series).toLowerCase().indexOf(lkw) >= 0;
+    });
+    shown = 0;
+    questMeta.innerHTML = lastResults.length
+      ? '<b>'+lastResults.length+'件</b>ヒット'
+      : '該当なし';
+    if(!lastResults.length){ questResults.innerHTML=''; return; }
+
+    questResults.innerHTML =
+      '<table class="qtable">'
+      + '<thead class="qtable-thead"><tr>'
+      + '<th>クエスト/地図の名称</th><th>分類</th><th>必要スキル</th><th>発見物・入手</th>'
+      + '</tr></thead>'
+      + '<tbody id="questTbody"></tbody>'
+      + '</table>'
+      + (lastResults.length > PAGE ? '<button class="quest-more" id="questMore"></button>' : '');
+
+    showMore(kw);
+
+    var more = document.getElementById('questMore');
+    if(more && shown < lastResults.length){
+      more.textContent = 'さらに表示 (' + (lastResults.length - shown) + '件)';
+      more.onclick = function(){ showMore(kw); };
+    }
+  }
+
+  questSearch.addEventListener('click', doSearch);
+  questInput.addEventListener('keydown', function(e){ if(e.key==='Enter') doSearch(); });
+  questInput.addEventListener('input', function(){ if(!questInput.value.trim()){ questMeta.innerHTML=''; questResults.innerHTML=''; } });
 })();
 </script>
 </body>
