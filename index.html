@@ -181,6 +181,10 @@
   .quest-search-btn:hover{filter:brightness(1.08);}
   .quest-search-btn:active{transform:translateY(1px);}
 
+  .quest-credit{font-size:11.5px;color:var(--muted);margin:8px 0 0;text-align:right;}
+  .quest-credit a{color:var(--muted);text-underline-offset:2px;}
+  .quest-credit a:hover{color:var(--teal);}
+
   /* 件数・ロード表示 */
   .quest-meta{font-size:12.5px;color:var(--muted);margin-top:10px;min-height:1.4em;}
   .quest-meta b{color:var(--teal);font-weight:700;}
@@ -304,6 +308,7 @@
       <input class="quest-input" id="questInput" type="search" placeholder="例: 海図、探索、リスボン" autocomplete="off">
       <button class="quest-search-btn" id="questSearch">検索</button>
     </div>
+    <p class="quest-credit">データ出典：<a href="https://gvdb.mydns.jp/db/" target="_blank" rel="noopener">大航海時代データベース</a></p>
     <div class="quest-meta" id="questMeta"></div>
     <div class="quest-results" id="questResults"></div>
   </div>
