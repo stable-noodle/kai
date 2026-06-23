@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>貝化装置(Ver. 1.1) — 「かい」を貝にする</title>
+<title>貝化装置(Ver1.1.1-4β) — 「かい」を貝にする</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
@@ -162,9 +162,19 @@
   /* ── クエスト検索 ── */
   /* ── クエスト検索 ── */
   .quest-section{margin-top:24px;}
-  .quest-section > h2{font-family:var(--serif);font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:.02em;}
+  .quest-section > h2, .kai-heading{font-family:var(--serif);font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:.02em;}
   .quest-section > .sub{font-size:13px;color:var(--muted);margin:0 0 14px;}
-  .quest-row{display:flex;gap:10px;align-items:stretch;}
+  .quest-row{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;}
+  .quest-chrono{
+    background:var(--surface);border:1px solid var(--line);border-radius:11px;
+    padding:12px 14px;font-family:var(--sans);font-size:14px;color:var(--ink);
+    outline:none;cursor:pointer;transition:border-color .15s,box-shadow .15s;
+    appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236C7A77' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 12px center;
+    padding-right:34px;
+  }
+  .quest-chrono:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(46,125,116,.14);}
   .quest-input{
     flex:1;background:var(--surface);border:1px solid var(--line);border-radius:11px;
     padding:12px 16px;font-family:var(--sans);font-size:15px;color:var(--ink);outline:none;
@@ -240,6 +250,7 @@
     color:var(--accent);background:var(--accent-tint);
     padding:3px 9px;border-radius:99px;
   }
+  .qchrono-label{font-size:11px;color:var(--muted);}
 
   /* 列：スキル */
   .qcol-skill{min-width:110px;line-height:1.9;color:var(--ink);}
@@ -297,7 +308,7 @@
 <div class="wrap">
   <header>
     <div class="eyebrow">かい <span class="arrow">→</span> <span style="color:var(--accent)">貝</span></div>
-    <h1>貝化<span class="shell">装置</span> (Ver. 1.1)</h1>
+    <h1>貝化<span class="shell">装置</span> (Ver1.1.1-4β)</h1>
   </header>
 
   <!-- ── クエストDB検索 ── -->
@@ -306,9 +317,33 @@
     <p class="sub">大航海時代オンライン — クエスト名・スキル・都市などで絞り込み</p>
     <div class="quest-row">
       <input class="quest-input" id="questInput" type="search" placeholder="例: 海図、探索、リスボン" autocomplete="off">
+      <select class="quest-chrono" id="questChrono">
+        <option value="">クロノクエスト（全て）</option>
+        <option>神話時代</option>
+        <option>紀元前</option>
+        <option>14世紀</option>
+        <option>15世紀第1期</option>
+        <option>15世紀第2期</option>
+        <option>15世紀第3期</option>
+        <option>15世紀第4期</option>
+        <option>15世紀第5期</option>
+        <option>16世紀第1期</option>
+        <option>16世紀第2期</option>
+        <option>16世紀第3期</option>
+        <option>16世紀第4期</option>
+        <option>16世紀第5期</option>
+        <option>17世紀第1期</option>
+        <option>17世紀第2期</option>
+        <option>17世紀第3期</option>
+        <option>17世紀第4期</option>
+        <option>18世紀第2期</option>
+        <option>18世紀第3期</option>
+        <option>18世紀第4期</option>
+        <option>19世紀</option>
+      </select>
       <button class="quest-search-btn" id="questSearch">検索</button>
     </div>
-    <p class="quest-credit">データ出典：<a href="https://gvdb.mydns.jp/db/" target="_blank" rel="noopener">大航海時代データベース</a>　データ最終更新：2026-06-13</p>
+    <p class="quest-credit">データ出典：<a href="https://gvdb.mydns.jp/db/" target="_blank" rel="noopener">大航海時代データベース</a>　データ最終更新：2026-06-22</p>
     <div class="quest-meta" id="questMeta"></div>
     <div class="quest-results" id="questResults"></div>
   </div>
@@ -316,7 +351,7 @@
   <div class="scallop" aria-hidden="true"></div>
 
   <!-- ── 貝化装置 ── -->
-  <p class="lede">文章の中で <b>「かい」と読む漢字</b> を、ぜんぶ貝に置きかえます。読みは文脈から判定するので、<b>「会う」はそのまま、「機械」は機貝</b>。</p>
+  <h2 class="kai-heading">貝化装置</h2>
 
   <div class="field-label" style="margin-top:20px;">
     <span>文章を入れる</span>
@@ -452,7 +487,8 @@
   var SEMIMARU = [
     '未知の海に出るとき、一番大切なのは地図やコンパスではなく、自分の「心の羅針盤」じゃよ。',
     '冒険の先にあるのは、お宝だけじゃない。「生きる知恵」と「仲間」じゃよ。',
-    '匍匐前進で大切なことは、しっかり上も見ることじゃよ。恥ずかしがってはダメだ。'
+    '匍匐前進で大切なことは、しっかり上も見ることじゃよ。恥ずかしがってはダメだ。',
+    '酒乱？統率？\nもちろんどちらも、持ってないですが、重要スキルなんです？'
   ];
 
   function render(){
@@ -607,6 +643,7 @@
   "use strict";
 
   var questInput   = document.getElementById('questInput');
+  var questChrono  = document.getElementById('questChrono');
   var questSearch  = document.getElementById('questSearch');
   var questMeta    = document.getElementById('questMeta');
   var questResults = document.getElementById('questResults');
@@ -730,7 +767,7 @@
       : '';
     return '<tr class="qrow-main">'
       + '<td class="qcol-name"><span class="qcard-name">'+highlight(q.name,kw)+'</span>'+toggleBtn+'</td>'
-      + '<td class="qcol-type"><span class="qtype-badge">'+esc(typeTxt)+'</span></td>'
+      + '<td class="qcol-type"><span class="qtype-badge">'+esc(typeTxt)+'</span>'+(q.chrono?'<br><span class="qchrono-label">'+esc(q.chrono)+'</span>':'')+'</td>'
       + '<td class="qcol-skill">'+fmtSkill(q.skill,kw)+'</td>'
       + '<td class="qcol-disc">'+fmtDisc(q,kw)+'</td>'
       + '</tr>'
@@ -777,14 +814,17 @@
 
   function doSearch(){
     var kw = questInput.value.trim();
+    var chrono = questChrono.value;
     currentKw = kw;
-    if(!kw){ questMeta.innerHTML=''; questResults.innerHTML=''; return; }
+    if(!kw && !chrono){ questMeta.innerHTML=''; questResults.innerHTML=''; return; }
     if(typeof QUESTS === 'undefined'){
       questMeta.innerHTML = '<span style="color:var(--accent)">データ読み込み中…</span>';
       return;
     }
     var lkw = kw.toLowerCase();
     lastResults = QUESTS.filter(function(q){
+      if(chrono && q.chrono !== chrono) return false;
+      if(!lkw) return true;
       return (q.name+q.skill+q.city+q.type+q.item+q.note+q.series).toLowerCase().indexOf(lkw) >= 0;
     });
     shown = 0;
@@ -812,8 +852,12 @@
   }
 
   questSearch.addEventListener('click', doSearch);
+  questChrono.addEventListener('change', doSearch);
   questInput.addEventListener('keydown', function(e){ if(e.key==='Enter') doSearch(); });
-  questInput.addEventListener('input', function(){ if(!questInput.value.trim()){ questMeta.innerHTML=''; questResults.innerHTML=''; } });
+  questInput.addEventListener('input', function(){
+    if(!questInput.value.trim() && !questChrono.value){ questMeta.innerHTML=''; questResults.innerHTML=''; }
+    else if(!questInput.value.trim()){ doSearch(); }
+  });
 })();
 </script>
 </body>
