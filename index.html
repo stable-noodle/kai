@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>貝化装置(Ver1.1.1-4β) — 「かい」を貝にする</title>
+<title>貝化装置(Ver1.2.4-β) — 「かい」を貝にする</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
@@ -308,7 +308,7 @@
 <div class="wrap">
   <header>
     <div class="eyebrow">かい <span class="arrow">→</span> <span style="color:var(--accent)">貝</span></div>
-    <h1>貝化<span class="shell">装置</span> (Ver1.1.1-4β)</h1>
+    <h1>貝化<span class="shell">装置</span> (Ver1.2.4-β)</h1>
   </header>
 
   <!-- ── クエストDB検索 ── -->
@@ -386,6 +386,7 @@
 
 <div class="toast" id="toast">コピーしました</div>
 
+<script src="easter-eggs.js"></script>
 <script>
 (function(){
   "use strict";
@@ -483,14 +484,65 @@
     });
   }
 
-  // ── 描画（非同期） ──
-  var SEMIMARU = [
-    '未知の海に出るとき、一番大切なのは地図やコンパスではなく、自分の「心の羅針盤」じゃよ。',
-    '冒険の先にあるのは、お宝だけじゃない。「生きる知恵」と「仲間」じゃよ。',
-    '匍匐前進で大切なことは、しっかり上も見ることじゃよ。恥ずかしがってはダメだ。',
-    '酒乱？統率？\nもちろんどちらも、持ってないですが、重要スキルなんです？',
-    '中学のころ、連れが彼女と付き合うとき大事なところの手術をして、膿が出たらしい。\nそれで「一皮むけた、ウミの漢」というあだ名になった。'
-  ];
+  // ── イースターエッグ ──
+  function pickRandom(items){
+    if(!items || !items.length) return '';
+    return items[Math.floor(Math.random() * items.length)];
+  }
+
+  function renderEasterEgg(egg){
+    output.className = 'output';
+    output.innerHTML = esc(egg.message) + (egg.author ? '<br><span style="font-size:13px;color:var(--muted)">— ' + esc(egg.author) + '</span>' : '');
+    window._lastPlain = egg.message;
+    chip.hidden = true; copyBtn.hidden = true; details.hidden = true;
+  }
+
+  function findEasterEgg(trimmed){
+    var config = window.EASTER_EGGS || {};
+    var exact = config.exact || [];
+    for(var i = 0; i < exact.length; i++){
+      var item = exact[i];
+      if((item.triggers || []).indexOf(trimmed) >= 0){
+        return {
+          message: pickRandom(item.messages),
+          author: item.author || ''
+        };
+      }
+    }
+
+    var prefixed = config.prefixed || [];
+    for(var j = 0; j < prefixed.length; j++){
+      var p = prefixed[j];
+      var prefixes = p.prefixes || (p.prefix ? [p.prefix] : []);
+      var matchedPrefix = '';
+      for(var k = 0; k < prefixes.length; k++){
+        if(trimmed.indexOf(prefixes[k]) === 0){
+          matchedPrefix = prefixes[k];
+          break;
+        }
+      }
+      if(!matchedPrefix) continue;
+      var topic = trimmed.slice(matchedPrefix.length).trim();
+      if(!topic){
+        var suggestedTopic = pickRandom(p.topics);
+        if(suggestedTopic){
+          return {
+            message: (p.outputPrefix || matchedPrefix) + suggestedTopic,
+            author: ''
+          };
+        }
+        return {
+          message: pickRandom(p.emptyMessages),
+          author: p.author || ''
+        };
+      }
+      return {
+        message: pickRandom(p.templates).replace(/\{topic\}/g, function(){ return topic; }),
+        author: p.author || ''
+      };
+    }
+    return null;
+  }
 
   function render(){
     var text = input.value;
@@ -501,12 +553,9 @@
       return;
     }
     var trimmed = text.trim();
-    if(trimmed === '蝉丸' || trimmed === 'せみまる'){
-      var q = SEMIMARU[Math.floor(Math.random() * SEMIMARU.length)];
-      output.className = 'output';
-      output.innerHTML = esc(q) + '<br><span style="font-size:13px;color:var(--muted)">— 蝉丸</span>';
-      window._lastPlain = q;
-      chip.hidden = true; copyBtn.hidden = true; details.hidden = true;
+    var egg = findEasterEgg(trimmed);
+    if(egg && egg.message){
+      renderEasterEgg(egg);
       return;
     }
     var mySeq = ++renderSeq;
